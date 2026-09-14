@@ -425,7 +425,6 @@
       </div>
     </div>
 
-    <!-- domains table -->
     <div class="domains-table reveal">
       <div class="domains-table-head">
         <span>Domain</span>
@@ -491,6 +490,7 @@
 const GITHUB_USER   = "OSINT-TECHNOLOGIES";
 const GITHUB_REPO   = "DPULSE_Showcase";
 const GITHUB_BRANCH = "main";
+
 const REPORTS = [
   {
     key:      "hackthissite",
@@ -521,8 +521,10 @@ const REPORTS = [
 function rawUrl(filePath) {
   return `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
 }
+
+// ✅ ИСПРАВЛЕНО: было dpulse-showcase.github.io, стало htmlpreview.github.io
 function toViewerUrl(rawLink) {
-  return "https://dpulse-showcase.github.io/?" + rawLink;
+  return "https://htmlpreview.github.io/?" + rawLink;
 }
 
 const frame       = document.getElementById("reportFrame");
