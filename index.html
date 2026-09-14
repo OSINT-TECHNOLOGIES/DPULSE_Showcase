@@ -496,25 +496,25 @@ const REPORTS = [
     key:      "hackthissite",
     label:    "hackthissite.org",
     desc:     "HackThisSite · pentest training",
-    repoPath: "reports/hackthissite.html",
+    repoPath: "https://github.com/OSINT-TECHNOLOGIES/DPULSE_Showcase/blob/main/reports/hackthissite_org/hackthissite_report.html",
   },
   {
     key:      "crapi",
     label:    "crapi.apisec.ai",
     desc:     "APIsec / OWASP · vulnerable API",
-    repoPath: "reports/crapi.html",
+    repoPath: "https://github.com/OSINT-TECHNOLOGIES/DPULSE_Showcase/blob/main/reports/crapiapisec/crapi.apisec_report.html",
   },
   {
     key:      "ginandjuice",
     label:    "ginandjuice.shop",
     desc:     "PortSwigger · modern vuln app",
-    repoPath: "reports/ginandjuice.html",
+    repoPath: "https://github.com/OSINT-TECHNOLOGIES/DPULSE_Showcase/blob/main/reports/ginandjuice/ginandjuice_report.html",
   },
   {
     key:      "gruyere",
     label:    "google-gruyere.appspot.com",
     desc:     "Google · App Engine training app",
-    repoPath: "reports/gruyere.html",
+    repoPath: "https://github.com/OSINT-TECHNOLOGIES/DPULSE_Showcase/blob/main/reports/gruyere/gruyere.appspot_report.html",
   },
 ];
 
@@ -522,7 +522,7 @@ function rawUrl(filePath) {
   return `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
 }
 function toViewerUrl(rawLink) {
-  return "https://htmlpreview.github.io/?" + rawLink;
+  return "https://dpulse-showcase.github.io/?" + rawLink;
 }
 
 const frame       = document.getElementById("reportFrame");
