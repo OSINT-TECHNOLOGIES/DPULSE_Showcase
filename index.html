@@ -518,13 +518,12 @@ const REPORTS = [
   },
 ];
 
-function rawUrl(filePath) {
-  return `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
+function pagesUrl(filePath) {
+  return `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/${filePath}`;
 }
 
-// ✅ ИСПРАВЛЕНО: было dpulse-showcase.github.io, стало htmlpreview.github.io
-function toViewerUrl(rawLink) {
-  return "https://htmlpreview.github.io/?" + rawLink;
+function rawUrl(filePath) {
+  return `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
 }
 
 const frame       = document.getElementById("reportFrame");
@@ -555,15 +554,15 @@ function selectReport(key) {
     b.classList.toggle("active", b.dataset.key === key)
   );
 
-  const raw    = r.githubRaw || rawUrl(r.repoPath);
-  const viewer = toViewerUrl(raw);
+  const viewer  = r.directUrl || pagesUrl(r.repoPath);
+  const download = r.githubRaw || rawUrl(r.repoPath);
 
   loader.classList.remove("hidden");
   frame.src = viewer;
 
-  chromeUrl.textContent = raw;
-  btnNewTab.href = viewer;
-  btnDL.href = raw;
+  chromeUrl.textContent = viewer;
+  btnNewTab.href  = viewer;
+  btnDL.href      = download;
   btnDL.setAttribute("download", r.key + ".html");
 
   history.replaceState(null, "", "#" + key);
