@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>DPULSE Report — ginandjuice.shop</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+:root {
+  --bg: #0f1115; --bg-panel: #14161c; --border: #23262f; --text: #e6e6e6;
+  --text-dim: #999; --accent: #4ade80; --accent-dark: #16a34a;
+  --purple: #a855f7; --gray: #6b7280; --blue: #3b82f6; --pink: #ec4899;
+  --teal: #14b8a6; --orange: #f97316; --red: #ef4444;
+  --input-bg: #1a1d24;
+}
+html[data-theme="light"] {
+  --bg: #f5f6f8; --bg-panel: #ffffff; --border: #dde1e6; --text: #1a1d24;
+  --text-dim: #666; --input-bg: #f0f1f3;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text); display: flex; min-height: 100vh;
+}
+.report-sidebar {
+  width: 240px; background: var(--bg-panel); border-right: 1px solid var(--border);
+  padding: 20px 10px; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0;
+}
+.report-sidebar h1 { color: var(--accent); font-size: 18px; margin-bottom: 4px; padding: 0 10px; }
+.report-sidebar .subtitle { color: var(--text-dim); font-size: 11px; padding: 0 10px 16px; word-break: break-all; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+  color: var(--text-dim); cursor: pointer; font-size: 13px; margin-bottom: 2px; transition: 0.15s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.nav-item.active { background: rgba(74,222,128,0.15); color: var(--accent); font-weight: 600; }
+.nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+.report-main { flex: 1; padding: 30px 40px; max-width: 1400px; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.top-bar-actions { display: flex; gap: 8px; }
+.btn {
+  background: var(--bg-panel); color: var(--text); border: 1px solid var(--border);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.15s;
+}
+.btn:hover { background: rgba(255,255,255,0.06); }
+.btn-primary { background: var(--accent); color: #06210f; border: none; font-weight: 600; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-danger { color: var(--red); }
+.view-section { display: block; margin-bottom: 20px; }
+.view-section.hidden-section { position: absolute; visibility: hidden; height: 0; overflow: hidden; pointer-events: none; z-index: -1; width: calc(100% - 280px); }
+.panel {
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px 24px; margin-bottom: 18px;
+}
+.panel h2 { font-size: 16px; color: var(--accent); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.panel h3 { font-size: 13px; color: var(--text); margin: 14px 0 8px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.info-item { background: var(--input-bg); border-radius: 8px; padding: 10px 14px; }
+.info-item .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
+.info-item .value { font-size: 13px; word-break: break-word; }
+.status-yes { color: var(--accent); }
+.status-no { color: var(--text-dim); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.stat-box { background: var(--input-bg); border-radius: 10px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+.stat-box .num { font-size: 26px; color: var(--accent); font-weight: 700; }
+.stat-box .label { font-size: 11px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; }
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 16px; }
+.chart-box { background: var(--input-bg); border-radius: 10px; padding: 16px; position: relative; }
+canvas.chart-canvas { max-width: 100%; }
+table { width: 100%; border-collapse: collapse; }
+table th, table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: top; }
+table th { color: var(--text-dim); font-size: 10.5px; text-transform: uppercase; cursor: pointer; user-select: none; white-space: nowrap; }
+table th:hover { color: var(--accent); }
+table th.sort-asc::after { content: ' ▲'; }
+table th.sort-desc::after { content: ' ▼'; }
+.empty-row td { color: var(--text-dim); font-style: italic; text-align: center; padding: 20px; }
+.row-hidden { display: none; }
+.table-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.table-controls input[type="text"] {
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
+  padding: 7px 10px; border-radius: 6px; font-size: 12px; flex: 1; min-width: 160px;
+}
+.pagination { display: flex; gap: 4px; margin-top: 12px; align-items: center; font-size: 12px; }
+.pagination button {
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;
+}
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagination .page-info { color: var(--text-dim); margin: 0 8px; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 10.5px; font-weight: 600; }
+.badge-critical { background: rgba(239,68,68,0.15); color: var(--red); animation: pulse 1.5s infinite; }
+.badge-high { background: rgba(249,115,22,0.15); color: var(--orange); }
+.badge-medium { background: rgba(234,179,8,0.15); color: #eab308; }
+.badge-low { background: rgba(74,222,128,0.15); color: var(--accent); }
+.badge-unknown { background: rgba(107,114,128,0.15); color: var(--gray); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+pre.code-block {
+  white-space: pre-wrap; font-size: 11.5px; background: var(--bg); padding: 14px;
+  border-radius: 8px; overflow-x: auto; border: 1px solid var(--border); max-height: 400px; overflow-y: auto;
+}
+.collapsible-header {
+  display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.collapsible-header .arrow { transition: transform 0.2s; }
+.collapsible-header.open .arrow { transform: rotate(90deg); }
+.collapsible-body { display: none; padding-top: 10px; }
+.collapsible-body.open { display: block; }
+#graph-container-wrap { position: relative; }
+#network-graph { width: 100%; height: 600px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+.graph-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+.graph-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; }
+.graph-filters label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+#graph-search-wrap { position: relative; }
+#graph-search-list {
+  position: absolute; top: 100%; left: 0; background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 6px; max-height: 180px; overflow-y: auto; width: 220px; z-index: 50; display: none;
+}
+#graph-search-list div { padding: 6px 10px; font-size: 12px; cursor: pointer; }
+#graph-search-list div:hover { background: rgba(255,255,255,0.06); }
+#graph-context-menu {
+  position: fixed; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px; display: none; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.4); min-width: 180px;
+}
+#graph-context-menu .ctx-item {
+  padding: 7px 12px; font-size: 12.5px; cursor: pointer; border-radius: 5px;
+}
+#graph-context-menu .ctx-item:hover { background: rgba(74,222,128,0.15); color: var(--accent); }
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-panel); border: 1px solid var(--accent); color: var(--text);
+  padding: 10px 16px; border-radius: 8px; font-size: 12.5px; animation: slideIn 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+@keyframes slideIn { from { transform: translateX(30px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+.checkbox-cell { width: 30px; }
+.hint-note { font-size: 11px; color: var(--text-dim); font-style: italic; margin-bottom: 10px; padding: 8px 12px; background: var(--input-bg); border-radius: 6px; border-left: 3px solid var(--accent); }
+.geo-cell.loaded { color: var(--accent); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+@media print {
+  body { display: block; }
+  .report-sidebar, .no-print, .table-controls, .pagination, .graph-controls, .top-bar-actions { display: none !important; }
+  .view-section.hidden-section { position: static !important; visibility: visible !important; height: auto !important; overflow: visible !important; width: 100% !important; display: block !important; page-break-before: always; }
+  .row-hidden { display: table-row !important; }
+  .report-main { max-width: 100%; padding: 0; }
+  .panel { break-inside: avoid; }
+}
+
+.hr-section-wrap {
+  --hr-red: #dc2626; --hr-dark: #1a0a0a; --hr-panel: #1c1010;
+}
+.hr-panel {
+  background: linear-gradient(180deg, #1c1010, #14161c);
+  border: 1px solid #3a1a1a;
+}
+.hr-panel h2 { color: #ef4444; }
+
+.risk-hero { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.risk-score-circle {
+  width: 96px; height: 96px; border-radius: 50%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 28px; font-weight: 800;
+  flex-shrink: 0; border: 4px solid; position: relative;
+}
+.risk-score-circle .risk-max { font-size: 10px; opacity: 0.6; font-weight: 500; }
+.risk-none { border-color: var(--gray); color: var(--gray); }
+.risk-low { border-color: var(--accent); color: var(--accent); }
+.risk-medium { border-color: #eab308; color: #eab308; }
+.risk-high { border-color: var(--orange); color: var(--orange); }
+.risk-critical { border-color: var(--red); color: var(--red); animation: pulse 1.5s infinite; }
+.risk-summary-text { font-size: 13.5px; color: var(--text-dim); max-width: 600px; line-height: 1.6; }
+.risk-level-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 6px; }
+
+.trend-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 12px; border-radius: 8px; margin-top: 14px; }
+.trend-increasing { background: rgba(239,68,68,0.12); color: var(--red); }
+.trend-decreasing { background: rgba(74,222,128,0.12); color: var(--accent); }
+.trend-stable { background: rgba(107,114,128,0.12); color: var(--gray); }
+.trend-unknown { background: rgba(107,114,128,0.08); color: var(--text-dim); }
+
+.vip-alert-box {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px;
+  padding: 14px 16px; margin-top: 16px;
+}
+.vip-alert-box h4 { color: var(--red); font-size: 13px; margin-bottom: 8px; }
+.vip-item { font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid rgba(239,68,68,0.15); }
+.vip-item:last-child { border-bottom: none; }
+
+.criticality-badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.crit-critical { background: rgba(239,68,68,0.15); color: var(--red); }
+.crit-high { background: rgba(249,115,22,0.15); color: var(--orange); }
+.crit-medium { background: rgba(234,179,8,0.15); color: #eab308; }
+.crit-low { background: rgba(107,114,128,0.15); color: var(--gray); }
+
+.pwd-blur { cursor: pointer; filter: blur(4px); transition: filter 0.15s; padding: 1px 5px; background: var(--input-bg); border-radius: 4px; font-family: monospace; }
+.pwd-blur.revealed { filter: none; }
+.hr-source-tag { font-size: 10px; padding: 2px 6px; background: var(--input-bg); border-radius: 4px; color: var(--text-dim); }
+
+.hygiene-score-bar-wrap { background: var(--input-bg); border-radius: 20px; height: 22px; overflow: hidden; margin: 10px 0; position: relative; }
+.hygiene-score-bar { height: 100%; background: linear-gradient(90deg, var(--red), #eab308, var(--accent)); border-radius: 20px; transition: width 0.6s ease; }
+.hygiene-score-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+.stealer-profile-card { background: var(--input-bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; border-left: 3px solid var(--red); }
+.stealer-profile-card h4 { font-size: 13px; color: var(--red); margin-bottom: 6px; }
+.stealer-profile-card p { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+.stealer-profile-card .meta-row { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; }
+.stealer-profile-card .meta-row strong { color: var(--text); }
+
+.geo-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12.5px; }
+.geo-bar-row .geo-label { width: 140px; flex-shrink: 0; color: var(--text-dim); }
+.geo-bar-track { flex: 1; background: var(--input-bg); border-radius: 6px; height: 16px; overflow: hidden; }
+.geo-bar-fill { height: 100%; background: var(--red); border-radius: 6px; }
+.geo-bar-count { width: 30px; text-align: right; color: var(--text-dim); }
+
+.remediation-list { list-style: none; }
+.remediation-list li {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.remediation-list li:last-child { border-bottom: none; }
+.remediation-list .rem-check {
+  width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--red); flex-shrink: 0; margin-top: 1px;
+}
+
+.cross-verified-item {
+  background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 8px; font-size: 12.5px;
+}
+.cross-verified-item .cv-badge { color: var(--accent); font-weight: 700; font-size: 10px; text-transform: uppercase; }
+
+.hr-partner-footer {
+  text-align: center; padding: 24px; margin-top: 10px; border-top: 1px dashed var(--border);
+  font-size: 12.5px; color: var(--text-dim);
+}
+.hr-partner-footer a { color: var(--red); text-decoration: none; font-weight: 600; }
+.hr-partner-footer a:hover { text-decoration: underline; }
+.hr-partner-footer .hr-badge {
+  display: inline-block; margin-top: 8px; padding: 6px 16px; border-radius: 20px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); font-size: 11px; font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<nav class="report-sidebar no-print">
+  <h1>DPULSE</h1>
+  <div class="subtitle">ginandjuice.shop</div>
+
+  <div class="nav-item active" data-section="general"><span class="icon">ℹ️</span> General Info</div>
+  <div class="nav-item" data-section="stats"><span class="icon">📊</span> Scan Statistics</div>
+  <div class="nav-item" data-section="graph"><span class="icon">🕸️</span> Infrastructure Graph</div>
+  <div class="nav-item" data-section="whois"><span class="icon">🪪</span> WHOIS Info</div>
+  <div class="nav-item" data-section="dns"><span class="icon">🔐</span> DNS & SSL</div>
+  <div class="nav-item" data-section="social"><span class="icon">📱</span> Social Media</div>
+  <div class="nav-item" data-section="subdomains"><span class="icon">🌐</span> Subdomains</div>
+  <div class="nav-item" data-section="ips"><span class="icon">🔢</span> IP Addresses</div>
+  <div class="nav-item" data-section="tech"><span class="icon">⚙️</span> Technology Stack</div>
+  <div class="nav-item" data-section="security"><span class="icon">🛡️</span> Security Analysis</div>
+  <div class="nav-item" data-section="hudsonrock"><span class="icon">🩸</span> Infostealer Intel</div>
+  <div class="nav-item" data-section="lunarcyber"><span class="icon">🌙</span> Lunar Domain Exposure</div>
+  <div class="nav-item" data-section="files"><span class="icon">📄</span> Technical Files</div>
+  
+  
+  <div class="nav-item" data-section="api"><span class="icon">🔌</span> API Results</div>
+</nav>
+
+<main class="report-main">
+
+  <div class="top-bar no-print">
+    <div style="font-size:13px; color:var(--text-dim);">Report generated: 14-09-2026, 16:51:12</div>
+    <div class="top-bar-actions">
+      <button class="btn" id="theme-toggle-btn">🌓 Theme</button>
+      <button class="btn btn-primary" id="print-btn">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <section class="view-section" id="section-general">
+    <div class="panel">
+      <h2>ℹ️ General Information</h2>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Target Domain</div><div class="value">ginandjuice.shop</div></div>
+        <div class="info-item"><div class="label">Full URL</div><div class="value">http://ginandjuice.shop/</div></div>
+        <div class="info-item"><div class="label">Case Comment</div><div class="value">Demonstration #2</div></div>
+        <div class="info-item"><div class="label">Robots.txt</div><div class="value status-no">Not found</div></div>
+        <div class="info-item"><div class="label">Sitemap.xml</div><div class="value status-no">Not found</div></div>
+        <div class="info-item"><div class="label">Sitemap Links Extracted</div><div class="value">1</div></div>
+        <div class="info-item"><div class="label">Google Dorking</div><div class="value status-no">Disabled</div></div>
+        <div class="info-item"><div class="label">PageSearch</div><div class="value status-no">Disabled</div></div>
+        <div class="info-item"><div class="label">Snapshotting</div><div class="value status-no">Disabled</div></div>
+        <div class="info-item"><div class="label">3rd-party APIs</div><div class="value status-yes">Enabled</div></div>
+        <div class="info-item"><div class="label">Report Created</div><div class="value">14-09-2026, 16:51:12</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view-section" id="section-stats">
+    <div class="panel">
+      <h2>📊 Scan Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="num">0</div><div class="label">Subdomains</div></div>
+        <div class="stat-box"><div class="num">0</div><div class="label">Social Links</div></div>
+        <div class="stat-box"><div class="num">1</div><div class="label">Emails</div></div>
+        <div class="stat-box"><div class="num">2</div><div class="label">IP Addresses</div></div>
+        <div class="stat-box"><div class="num">2</div><div class="label">Open Ports</div></div>
+        <div class="stat-box"><div class="num">0</div><div class="label">Vulnerabilities</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-box"><h3>Overall Statistics</h3><canvas id="bar-chart" class="chart-canvas"></canvas></div>
+        <div class="chart-box"><h3>Social Media Distribution</h3><canvas id="doughnut-chart" class="chart-canvas"></canvas></div>
+      </div>
+    </div>
+
+    
+  </section>
+
+  <section class="view-section" id="section-graph">
+    <div class="panel">
+      <h2>🕸️ Domain Infrastructure Graph</h2>
+      <div class="graph-filters no-print" id="graph-filters"></div>
+      <div class="graph-controls no-print">
+        <button class="btn btn-sm" id="graph-fit-btn">🔍 Fit View</button>
+        <button class="btn btn-sm" id="graph-physics-btn">⚛️ Physics: On</button>
+        <button class="btn btn-sm" id="graph-cluster-btn">🧲 Cluster</button>
+        <button class="btn btn-sm" id="graph-fullscreen-btn">⛶ Fullscreen</button>
+        <button class="btn btn-sm" id="graph-export-png">🖼️ PNG</button>
+        <button class="btn btn-sm" id="graph-export-svg">📐 SVG</button>
+        <button class="btn btn-sm" id="graph-export-json">🗂️ JSON</button>
+        <div id="graph-search-wrap">
+          <input type="text" id="graph-search-input" placeholder="Search node...">
+          <div id="graph-search-list"></div>
+        </div>
+      </div>
+      <div id="graph-container-wrap">
+        <div id="network-graph"></div>
+      </div>
+      <div class="hint-note">Right-click a node for actions. Drag to rearrange. Scroll to zoom. Double-click to focus.</div>
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-whois">
+    <div class="panel">
+      <h2>🪪 WHOIS Information</h2>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Domain</div><div class="value">ginandjuice.shop</div></div>
+        <div class="info-item"><div class="label">Full URL</div><div class="value">http://ginandjuice.shop/</div></div>
+        <div class="info-item"><div class="label">IP Address</div><div class="value">34.246.169.176</div></div>
+        <div class="info-item"><div class="label">Registrar</div><div class="value">N/A</div></div>
+        <div class="info-item"><div class="label">Created</div><div class="value">N/A</div></div>
+        <div class="info-item"><div class="label">Expires</div><div class="value">N/A</div></div>
+        <div class="info-item"><div class="label">Organization</div><div class="value">N/A</div></div>
+        <div class="info-item"><div class="label">Contacts</div><div class="value">No contact e-mails were found</div></div>
+      </div>
+      <div class="top-bar-actions no-print" style="margin-top:14px;">
+        <button class="btn btn-sm" data-external-url="https://who.is/whois/ginandjuice.shop">🔗 Full WHOIS on who.is</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-dns">
+    <div class="panel">
+      <h2>🔐 DNS Records</h2>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Name Servers</div><div class="value">N/A</div></div>
+        <div class="info-item"><div class="label">MX Records</div><div class="value">No information about MX records was gathered</div></div>
+      </div>
+      <div class="top-bar-actions no-print" style="margin-top:12px;">
+        <button class="btn btn-sm" id="dns-lookup-btn">🔄 Live DNS Lookup (A/AAAA/TXT)</button>
+      </div>
+      <div id="dns-lookup-result" style="margin-top:10px;"></div>
+    </div>
+    <div class="panel">
+      <h2>🔒 SSL Certificate</h2>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Issuer</div><div class="value">US</div></div>
+        <div class="info-item"><div class="label">Subject</div><div class="value">ginandjuice.shop</div></div>
+        <div class="info-item"><div class="label">Valid From</div><div class="value">Nov 23 00:00:00 2025 GMT</div></div>
+        <div class="info-item"><div class="label">Valid Until</div><div class="value">Dec 22 23:59:59 2026 GMT</div></div>
+        <div class="info-item"><div class="label">Common Name</div><div class="value">Amazon RSA 2048 M04, version: 3</div></div>
+        <div class="info-item"><div class="label">Serial Number</div><div class="value">0C7876FC8AA38472858FBC17E07164D1</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-social">
+    <div class="panel">
+      <h2>📱 Social Media Analysis</h2>
+      <div class="stats-grid" style="margin-bottom:16px;">
+        
+        <div class="hint-note">No social media links were discovered.</div>
+      </div>
+
+      
+      <div class="hint-note">No social media links to display.</div>
+      
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-subdomains">
+    <div class="panel">
+      <h2>🌐 Subdomains (0)</h2>
+      
+      <div class="hint-note">No subdomains were discovered.</div>
+      
+
+      <h3>Subdomain Contact Emails</h3>
+      <p style="font-size:12.5px;">['No subdomains mails were found']</p>
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-ips">
+    <div class="panel">
+      <h2>🔢 IP Addresses</h2>
+      
+      <div class="table-controls no-print">
+        <input type="text" id="ips-search" placeholder="Search IPs...">
+        <button class="btn btn-sm" id="ips-select-all">Select All</button>
+        <button class="btn btn-sm" id="ips-geolocate-btn">🌍 Geolocate Selected</button>
+        <button class="btn btn-sm" id="ips-rdns-btn">↩️ Reverse DNS Selected</button>
+        <button class="btn btn-sm" id="ips-export-btn">⬇️ Export CSV</button>
+      </div>
+      <table id="ips-table">
+        <thead><tr>
+          <th class="checkbox-cell"><input type="checkbox" id="ips-check-all-header"></th>
+          <th data-sort="ip">IP Address</th><th data-sort="source">Source</th><th>Geolocation</th><th>Reverse DNS</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="ip-row-check" value="34.246.169.176"></td>
+            <td>34.246.169.176</td>
+            <td>Primary domain</td>
+            <td class="geo-cell">—</td>
+            <td class="rdns-cell">—</td>
+            <td>
+              <button class="btn btn-sm" data-external-url="https://www.shodan.io/host/34.246.169.176">Shodan</button>
+              <button class="btn btn-sm" data-external-url="https://www.virustotal.com/gui/ip-address/34.246.169.176">VT</button>
+              <button class="btn btn-sm" data-external-url="https://www.abuseipdb.com/check/34.246.169.176">AbuseIPDB</button>
+            </td>
+          </tr>
+          
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="ip-row-check" value="No subdomains IP's were found"></td>
+            <td>No subdomains IP's were found</td>
+            <td>Subdomain (aggregate)</td>
+            <td class="geo-cell">—</td>
+            <td class="rdns-cell">—</td>
+            <td>
+              <button class="btn btn-sm" data-external-url="https://www.shodan.io/host/No subdomains IP's were found">Shodan</button>
+              <button class="btn btn-sm" data-external-url="https://www.virustotal.com/gui/ip-address/No subdomains IP's were found">VT</button>
+              <button class="btn btn-sm" data-external-url="https://www.abuseipdb.com/check/No subdomains IP's were found">AbuseIPDB</button>
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+      <div class="pagination" id="ips-pagination"></div>
+      
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-tech">
+    <div class="panel">
+      <h2>⚙️ Technology Stack</h2>
+      
+      <div class="table-controls no-print">
+        <input type="text" id="tech-search" placeholder="Search technologies...">
+        <select id="tech-category-filter">
+          <option value="">All categories</option>
+          <option>Web Server</option><option>CMS</option><option>Programming Language</option>
+          <option>Web Framework</option><option>Analytics</option><option>JavaScript Framework</option>
+        </select>
+        <button class="btn btn-sm" id="tech-select-all">Select All</button>
+        <button class="btn btn-sm" id="tech-cve-btn">🛡️ Check CVEs (NVD)</button>
+        <button class="btn btn-sm" id="tech-export-btn">⬇️ Export CSV</button>
+      </div>
+      <table id="tech-table">
+        <thead><tr>
+          <th class="checkbox-cell"><input type="checkbox" id="tech-check-all-header"></th>
+          <th data-sort="category">Category</th><th data-sort="name">Name</th><th>CVE Check</th>
+        </tr></thead>
+        <tbody>
+          
+          <tr data-category="JavaScript Framework">
+            <td class="checkbox-cell"><input type="checkbox" class="tech-row-check" value="AngularJS"></td>
+            <td>JavaScript Framework</td>
+            <td>AngularJS</td>
+            <td class="cve-cell">—</td>
+          </tr>
+          
+          <tr data-category="JavaScript Framework">
+            <td class="checkbox-cell"><input type="checkbox" class="tech-row-check" value="React"></td>
+            <td>JavaScript Framework</td>
+            <td>React</td>
+            <td class="cve-cell">—</td>
+          </tr>
+          
+        </tbody>
+      </table>
+      <div class="pagination" id="tech-pagination"></div>
+      
+
+      <h3>Tags / CPE Entries</h3>
+      <p style="font-size:12.5px;"><strong>Tags:</strong> ['cloud']</p>
+      <p style="font-size:12.5px; margin-top:6px;"><strong>CPEs:</strong> ['cpe:/a:amazon:elastic_load_balancing']</p>
+    </div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-security">
+    <div class="panel">
+      <h2>🛡️ Open Ports</h2>
+      
+      <div class="table-controls no-print">
+        <input type="text" id="ports-search" placeholder="Search ports...">
+        <select id="ports-service-filter">
+          <option value="">All services</option>
+          <option value="http">HTTP</option><option value="ssh">SSH</option><option value="ftp">FTP</option>
+          <option value="db">Database</option><option value="mail">Mail</option><option value="remote">Remote</option>
+        </select>
+        <button class="btn btn-sm" id="ports-select-all">Select All</button>
+        <button class="btn btn-sm" id="ports-nmap-btn">⚡ Generate Nmap Command</button>
+        <button class="btn btn-sm" id="ports-export-btn">⬇️ Export CSV</button>
+      </div>
+      <table id="ports-table">
+        <thead><tr>
+          <th class="checkbox-cell"><input type="checkbox" id="ports-check-all-header"></th>
+          <th data-sort="port">Port</th><th>Likely Service</th>
+        </tr></thead>
+        <tbody>
+          
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="port-row-check" value="80"></td>
+            <td>80</td>
+            <td class="service-guess">—</td>
+          </tr>
+          
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="port-row-check" value="443"></td>
+            <td>443</td>
+            <td class="service-guess">—</td>
+          </tr>
+          
+        </tbody>
+      </table>
+      <div id="nmap-output" style="display:none;"></div>
+      
+    </div>
+
+    <div class="panel">
+      <h2>🛡️ Potential Vulnerabilities</h2>
+      
+      <div class="hint-note">No known vulnerabilities detected via Shodan InternetDB.</div>
+      
+    </div>
+
+    <div class="panel">
+      <h2>Hostnames (InternetDB)</h2>
+      <p style="font-size:12.5px;">['ec2-34-246-169-176.eu-west-1.compute.amazonaws.com', 'ginandjuice.shop']</p>
+    </div>
+  </section>
+  
+  <section class="view-section hidden-section hr-section-wrap" id="section-hudsonrock">
+
+  <div class="panel hr-panel" id="hr-risk-panel"></div>
+
+  <div class="panel hr-panel">
+    <h2>📈 Infection Timeline & Stealer Breakdown</h2>
+    <div class="charts-row">
+      <div class="chart-box"><h3>Timeline (by month)</h3><canvas id="hr-timeline-chart" class="chart-canvas"></canvas></div>
+      <div class="chart-box"><h3>Stealer Family Distribution</h3><canvas id="hr-family-chart" class="chart-canvas"></canvas></div>
+    </div>
+    <div id="hr-trend-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <h2>🧬 Stealer Threat Profiles</h2>
+    <div id="hr-profiles-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <h2>🔑 Password Hygiene Analysis</h2>
+    <div id="hr-hygiene-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0;">🖥️ Compromised Records</h2>
+      <button class="btn btn-sm no-print" id="hr-reveal-all-btn">👁️ Reveal All Passwords</button>
+    </div>
+    <div id="hr-records-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <h2>🌐 Attack Surface — Classified by Criticality</h2>
+    <div id="hr-attack-surface-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <h2>🗺️ Geographic Distribution of Infected Machines</h2>
+    <div id="hr-geo-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <h2>🔗 Cross-Verified Findings</h2>
+    <p class="hint-note">Findings independently confirmed by correlating HudsonRock data with DPULSE's own technology stack detection.</p>
+    <div id="hr-crossverify-container"></div>
+  </div>
+
+  <div class="panel hr-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0;">📋 Auto-Generated Remediation Plan</h2>
+      <button class="btn btn-sm no-print" id="hr-export-remediation-btn">⬇️ Export Plan</button>
+    </div>
+    <ul class="remediation-list" id="hr-remediation-list"></ul>
+  </div>
+
+  <div class="panel hr-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0;">📧 Checked Contacts</h2>
+      <button class="btn btn-sm no-print" id="hr-export-summary-btn">⬇️ Export Executive Summary</button>
+    </div>
+    <div id="hr-emails-container"></div>
+  </div>
+
+  <div class="hr-partner-footer no-print">
+    <div>Deep threat intelligence analysis powered by our official technology partner</div>
+    <a href="#" data-external-url="https://www.hudsonrock.com/">
+      <span class="hr-badge">🩸 In partnership with HudsonRock</span>
+    </a>
+  </div>
+
+</section>
+
+  <section class="view-section hidden-section hr-section-wrap" id="section-lunarcyber">
+    <div class="panel hr-panel" id="lunar-risk-panel"></div>
+    <div class="panel hr-panel">
+      <h2>🍩 Lunar Event Source Mix</h2>
+      <div class="chart-box" style="max-width:440px;height:280px;margin:0 auto;">
+        <h3>Infostealer vs Data Breach</h3>
+        <canvas id="lunar-family-chart" class="chart-canvas"></canvas>
+      </div>
+    </div>
+    <div class="panel hr-panel" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="lunar-export-json-btn">⬇️ Export Complete Lunar JSON</button>
+      <span class="hint-note">Exports the complete aggregate response, including fields not shown in the dashboard.</span>
+    </div>
+    <div class="panel hr-panel"><h2>🗓️ Reporting Period and Monthly Timeline</h2><div id="lunar-timeline-container"></div></div>
+    <div class="panel hr-panel"><h2>🧾 Event Families and Detailed Summaries</h2><div id="lunar-family-container"></div><div id="lunar-infostealer-container"></div><div id="lunar-breach-summary-container"></div></div>
+    <div class="panel hr-panel"><h2>👥 Employee and Client Exposure</h2><div id="lunar-subject-container"></div></div>
+    <div class="panel hr-panel"><h2>🧬 Malware, Operating System & Antivirus</h2><div id="lunar-malware-container"></div><div id="lunar-os-container"></div><div id="lunar-antivirus-container"></div></div>
+    <div class="panel hr-panel"><h2>🔐 Services and Login URLs</h2><div id="lunar-services-container"></div><div id="lunar-login-container"></div></div>
+    <div class="panel hr-panel"><h2>🌍 Geography and Breach Sources</h2><div id="lunar-country-container"></div><div id="lunar-breach-container"></div></div>
+    <div class="hr-partner-footer no-print"><div>Aggregate domain exposure intelligence provided by Lunar Cyber</div><a href="#" data-external-url="https://lunarcyber.com/"><span class="hr-badge">🌙 Lunar Domain Exposure</span></a></div>
+  </section>
+
+  <section class="view-section hidden-section" id="section-files">
+    <div class="panel">
+      <h2>📄 Technical Files</h2>
+      <div class="info-grid" style="margin-bottom:16px;">
+        <div class="info-item"><div class="label">robots.txt Status</div><div class="value">File "robots.txt" was not found</div></div>
+        <div class="info-item"><div class="label">sitemap.xml Status</div><div class="value">File "sitemap.xml" was not found</div></div>
+        <div class="info-item"><div class="label">Sitemap Links Status</div><div class="value">Links from "sitemap.txt" were not parsed</div></div>
+      </div>
+
+      <div class="collapsible-header" data-target="robots-body"><span>robots.txt</span><span class="arrow">▶</span></div>
+      <div class="collapsible-body" id="robots-body"><pre class="code-block">robots.txt: empty</pre></div>
+
+      <div class="collapsible-header" data-target="sitemap-body"><span>sitemap.xml</span><span class="arrow">▶</span></div>
+      <div class="collapsible-body" id="sitemap-body"><pre class="code-block">sitemap.xml: empty</pre></div>
+
+      <div class="collapsible-header" data-target="sitemaplinks-body"><span>Sitemap Extracted Links</span><span class="arrow">▶</span></div>
+      <div class="collapsible-body" id="sitemaplinks-body"><pre class="code-block">Sitemap links: empty</pre></div>
+    </div>
+  </section>
+
+  
+
+  
+
+  
+  <section class="view-section hidden-section" id="section-api">
+    <div class="panel"><h2>🔌 VirusTotal Results</h2><pre class="code-block">No results because user did not selected VirusTotal API scan</pre></div>
+    <div class="panel"><h2>🔌 SecurityTrails Results</h2><pre class="code-block">No results because user did not selected SecurityTrails API scan</pre></div>
+  </section>
+  
+
+</main>
+
+<div class="toast-container"></div>
+<div id="graph-context-menu"></div>
+<script>
+
+function openExternalLink(url) {
+  if (!url) return;
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'dpulse-open-external', url: url }, '*');
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  } catch (e) {
+    console.warn('postMessage to parent failed, trying window.open directly:', e);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+
+document.addEventListener('click', function (event) {
+  const target = event.target.closest('[data-external-url]');
+  if (target) {
+    event.preventDefault();
+    openExternalLink(target.getAttribute('data-external-url'));
+    return;
+  }
+
+  const link = event.target.closest('a[target="_blank"]');
+  if (link && link.href) {
+    event.preventDefault();
+    openExternalLink(link.href);
+  }
+});
+
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const target = item.dataset.section;
+    document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden-section'));
+    document.getElementById('section-' + target)?.classList.remove('hidden-section');
+    if (target === 'graph' && window.__network) setTimeout(() => window.__network.fit(), 100);
+  });
+});
+
+
+try {
+  const saved = localStorage.getItem('dpulse-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+} catch(e) {}
+
+document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  try { localStorage.setItem('dpulse-theme', next); } catch(e) {}
+});
+
+document.getElementById('print-btn')?.addEventListener('click', () => window.print());
+
+
+function showToast(message) {
+  const container = document.querySelector('.toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).then(() => showToast('Copied to clipboard')).catch(() => showToast('Copy failed'));
+}
+
+
+document.querySelectorAll('.collapsible-header').forEach(header => {
+  header.addEventListener('click', () => {
+    header.classList.toggle('open');
+    document.getElementById(header.dataset.target).classList.toggle('open');
+  });
+});
+
+
+function initTable(tableId, searchInputId, paginationId, pageSize, extraFilterFn) {
+  const table = document.getElementById(tableId);
+  if (!table) return null;
+  const tbody = table.querySelector('tbody');
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  let currentPage = 1;
+  let sortCol = null, sortDir = 1;
+
+  function getFilteredRows() {
+    const term = searchInputId ? (document.getElementById(searchInputId)?.value || '').toLowerCase() : '';
+    return allRows.filter(row => {
+      const matchesSearch = !term || row.textContent.toLowerCase().includes(term);
+      const matchesExtra = extraFilterFn ? extraFilterFn(row) : true;
+      return matchesSearch && matchesExtra;
+    });
+  }
+
+  function render() {
+    const filtered = getFilteredRows();
+    if (sortCol !== null) {
+      filtered.sort((a, b) => {
+        const av = a.children[sortCol].textContent.trim().toLowerCase();
+        const bv = b.children[sortCol].textContent.trim().toLowerCase();
+        const an = parseFloat(av), bn = parseFloat(bv);
+        if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+        return av.localeCompare(bv) * sortDir;
+      });
+    }
+    allRows.forEach(r => r.classList.add('row-hidden'));
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * pageSize;
+    const pageRows = filtered.slice(start, start + pageSize);
+    pageRows.forEach(r => { r.classList.remove('row-hidden'); tbody.appendChild(r); });
+
+    let emptyRow = tbody.querySelector('.empty-row-generated');
+    if (filtered.length === 0) {
+      if (!emptyRow) {
+        emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row empty-row-generated';
+        const colCount = table.querySelectorAll('thead th').length;
+        emptyRow.innerHTML = `<td colspan="${colCount}">No matching results</td>`;
+        tbody.appendChild(emptyRow);
+      }
+      emptyRow.classList.remove('row-hidden');
+    } else if (emptyRow) {
+      emptyRow.classList.add('row-hidden');
+    }
+
+    if (paginationId) {
+      const pag = document.getElementById(paginationId);
+      pag.innerHTML = `
+        <button ${currentPage <= 1 ? 'disabled' : ''} data-page="prev">‹ Prev</button>
+        <span class="page-info">Page ${currentPage} / ${totalPages} (${filtered.length} items)</span>
+        <button ${currentPage >= totalPages ? 'disabled' : ''} data-page="next">Next ›</button>
+      `;
+      pag.querySelector('[data-page="prev"]').onclick = () => { currentPage--; render(); };
+      pag.querySelector('[data-page="next"]').onclick = () => { currentPage++; render(); };
+    }
+  }
+
+  if (searchInputId) {
+    document.getElementById(searchInputId)?.addEventListener('input', () => { currentPage = 1; render(); });
+  }
+
+  table.querySelectorAll('thead th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const colIndex = Array.from(th.parentNode.children).indexOf(th);
+      if (sortCol === colIndex) sortDir *= -1; else { sortCol = colIndex; sortDir = 1; }
+      table.querySelectorAll('thead th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+      render();
+    });
+  });
+
+  render();
+  return { render };
+}
+
+function exportTableToCSV(tableId, filename, checkboxSelector) {
+  const table = document.getElementById(tableId);
+  const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => !r.classList.contains('row-hidden'));
+  let targetRows = rows;
+  if (checkboxSelector) {
+    const selected = rows.filter(r => { const cb = r.querySelector(checkboxSelector); return cb && cb.checked; });
+    if (selected.length > 0) targetRows = selected;
+  }
+  const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim()).filter(h => h);
+  let csv = headers.join(',') + '\n';
+  targetRows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td')).map(td => '"' + td.textContent.trim().replace(/"/g, '""') + '"');
+    csv += cells.join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+function wireSelectAll(headerId, rowClass) {
+  document.getElementById(headerId)?.addEventListener('change', (e) => {
+    document.querySelectorAll('.' + rowClass).forEach(cb => cb.checked = e.target.checked);
+  });
+}
+function getSelected(rowClass) {
+  return Array.from(document.querySelectorAll('.' + rowClass)).filter(cb => cb.checked);
+}
+
+
+function checkReachable(url, timeoutMs) {
+  timeoutMs = timeoutMs || 4000;
+  return new Promise((resolve) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => { controller.abort(); resolve(false); }, timeoutMs);
+    fetch(url, { mode: 'no-cors', signal: controller.signal })
+      .then(() => { clearTimeout(timer); resolve(true); })
+      .catch(() => { clearTimeout(timer); resolve(false); });
+  });
+}
+
+async function dohQuery(name, type) {
+  const resp = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, {
+    headers: { 'accept': 'application/dns-json' }
+  });
+  if (!resp.ok) throw new Error('DoH request failed: ' + resp.status);
+  return resp.json();
+}
+
+function ipToReverseName(ip) {
+  return ip.split('.').reverse().join('.') + '.in-addr.arpa';
+}
+async function reverseDnsLookup(ip) {
+  const data = await dohQuery(ipToReverseName(ip), 'PTR');
+  if (data.Answer && data.Answer.length) return data.Answer.map(a => a.data).join(', ');
+  return 'No PTR record found';
+}
+
+async function geolocateIp(ip) {
+  const resp = await fetch(`https://ipapi.co/${ip}/json/`);
+  if (!resp.ok) throw new Error('Geolocation failed');
+  const data = await resp.json();
+  if (data.error) throw new Error(data.reason || 'Geolocation error');
+  return `${data.city || '?'}, ${data.country_name || '?'}`;
+}
+
+async function checkWayback(url) {
+  const resp = await fetch(`https://archive.org/wayback/available?url=${encodeURIComponent(url)}`);
+  const data = await resp.json();
+  return (data.archived_snapshots && data.archived_snapshots.closest) ? data.archived_snapshots.closest.url : null;
+}
+
+async function nvdSearchByKeyword(keyword) {
+  const resp = await fetch(`https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=${encodeURIComponent(keyword)}&resultsPerPage=5`);
+  if (!resp.ok) throw new Error('NVD lookup failed: ' + resp.status);
+  const data = await resp.json();
+  return data.vulnerabilities || [];
+}
+
+async function nvdGetCve(cveId) {
+  const resp = await fetch(`https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=${encodeURIComponent(cveId)}`);
+  if (!resp.ok) throw new Error('NVD lookup failed: ' + resp.status);
+  const data = await resp.json();
+  if (!data.vulnerabilities || !data.vulnerabilities.length) return null;
+  const cve = data.vulnerabilities[0].cve;
+  const metrics = cve.metrics || {};
+  let severity = 'UNKNOWN', score = null;
+  const src = metrics.cvssMetricV31 || metrics.cvssMetricV30 || metrics.cvssMetricV2;
+  if (src && src.length) {
+    severity = (src[0].cvssData?.baseSeverity || src[0].baseSeverity || 'UNKNOWN').toUpperCase();
+    score = src[0].cvssData?.baseScore;
+  }
+  const description = (cve.descriptions.find(d => d.lang === 'en') || {}).value || 'No description available';
+  return { severity, score, description };
+}
+
+const PORT_SERVICES = {
+  21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP (Mail)', 53: 'DNS', 80: 'HTTP',
+  110: 'POP3 (Mail)', 143: 'IMAP (Mail)', 443: 'HTTPS', 445: 'SMB',
+  993: 'IMAPS (Mail)', 995: 'POP3S (Mail)', 1433: 'MSSQL (DB)', 1521: 'Oracle (DB)',
+  3306: 'MySQL (DB)', 3389: 'RDP (Remote)', 5432: 'PostgreSQL (DB)',
+  5900: 'VNC (Remote)', 6379: 'Redis (DB)', 8080: 'HTTP-Alt', 8443: 'HTTPS-Alt', 27017: 'MongoDB (DB)'
+};
+function guessService(port) { return PORT_SERVICES[parseInt(port)] || 'Unknown'; }
+function serviceCategory(name) {
+  const s = name.toLowerCase();
+  if (s.includes('http')) return 'http';
+  if (s.includes('ssh')) return 'ssh';
+  if (s.includes('ftp')) return 'ftp';
+  if (s.includes('db') || s.includes('sql') || s.includes('mongo') || s.includes('redis')) return 'db';
+  if (s.includes('mail') || s.includes('smtp') || s.includes('pop') || s.includes('imap')) return 'mail';
+  if (s.includes('rdp') || s.includes('vnc') || s.includes('remote') || s.includes('telnet')) return 'remote';
+  return '';
+}
+
+
+function initCharts() {
+  const barCtx = document.getElementById('bar-chart');
+  if (barCtx) {
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Subdomains', 'Social Links', 'Emails', 'IPs', 'Open Ports', 'Vulnerabilities'],
+        datasets: [{
+          label: 'Count',
+          data: [0, 0, 1, 2, 2, 0],
+          backgroundColor: ['#3b82f6', '#ec4899', '#4ade80', '#14b8a6', '#f97316', '#ef4444']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#999' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          x: { ticks: { color: '#999' }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const socialData = {};
+  const doughnutCtx = document.getElementById('doughnut-chart');
+  if (doughnutCtx && Object.keys(socialData).length > 0) {
+    new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(socialData),
+        datasets: [{
+          data: Object.values(socialData),
+          backgroundColor: ['#1877f2', '#1da1f2', '#e4405f', '#0088cc', '#f97316', '#0a66c2', '#4267b2', '#ff0000', '#f97316', '#25d366', '#000000']
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#999', font: { size: 10 } } } } }
+    });
+  } else if (doughnutCtx) {
+    doughnutCtx.parentElement.innerHTML = '<h3>Social Media Distribution</h3><div class="hint-note">No social media data to chart</div>';
+  }
+}
+initCharts();
+
+
+const GROUP_COLORS = { domain: '#a855f7', service: '#6b7280', subdomain: '#3b82f6', social: '#ec4899', ip: '#14b8a6', port: '#f97316', vuln: '#ef4444', compromised_employee: '#dc2626', exposed_service: '#7c2d12' };
+const GROUP_LABELS = { domain: 'Domain', service: 'Services', subdomain: 'Subdomains', social: 'Socials', ip: 'IPs', port: 'Ports', vuln: 'Vulnerabilities', compromised_employee: 'Compromised Employees', exposed_service: 'Exposed Critical Services' };
+
+function initGraph(graphData) {
+  const container = document.getElementById('network-graph');
+  if (!container || !graphData || !graphData.nodes || graphData.nodes.length === 0) {
+    if (container) container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);">No graph data available</div>';
+    return;
+  }
+
+  const allNodes = new vis.DataSet(graphData.nodes.map(n => ({
+    ...n,
+    color: { background: GROUP_COLORS[n.group] || '#888', border: 'rgba(0,0,0,0.2)' },
+    font: { color: '#e6e6e6', size: 12 },
+    shape: n.group === 'domain' ? 'star' : 'dot',
+    size: n.group === 'domain' ? 26 : 14
+  })));
+  const allEdges = new vis.DataSet(graphData.edges.map((e, i) => ({ id: i, ...e, color: { color: '#4b5563', opacity: 0.5 } })));
+
+  window.__allGraphNodes = allNodes;
+  window.__allGraphEdges = allEdges;
+
+  const network = new vis.Network(container, { nodes: allNodes, edges: allEdges }, {
+    physics: { enabled: true, barnesHut: { gravitationalConstant: -4000, springLength: 120 }, stabilization: { iterations: 150 } },
+    interaction: { hover: true, tooltipDelay: 100 },
+    edges: { smooth: { type: 'continuous' } }
+  });
+  window.__network = network;
+  let physicsEnabled = true;
+  let clustered = false;
+
+  const groupsPresent = [...new Set(graphData.nodes.map(n => n.group))];
+  const filtersWrap = document.getElementById('graph-filters');
+  filtersWrap.innerHTML = groupsPresent.map(g => `
+    <label><input type="checkbox" checked class="graph-filter-cb" data-group="${g}">
+    <span class="legend-dot" style="background:${GROUP_COLORS[g] || '#888'}"></span> ${GROUP_LABELS[g] || g}</label>
+  `).join('');
+  filtersWrap.querySelectorAll('.graph-filter-cb').forEach(cb => cb.addEventListener('change', applyFilters));
+
+  function applyFilters() {
+    const active = new Set();
+    filtersWrap.querySelectorAll('.graph-filter-cb').forEach(cb => { if (cb.checked) active.add(cb.dataset.group); });
+    const filteredNodes = allNodes.get().filter(n => active.has(n.group));
+    const visibleIds = new Set(filteredNodes.map(n => n.id));
+    const filteredEdges = allEdges.get().filter(e => visibleIds.has(e.from) && visibleIds.has(e.to));
+    network.setData({ nodes: new vis.DataSet(filteredNodes), edges: new vis.DataSet(filteredEdges) });
+  }
+
+  document.getElementById('graph-fit-btn').addEventListener('click', () => network.fit({ animation: true }));
+
+  document.getElementById('graph-physics-btn').addEventListener('click', (e) => {
+    physicsEnabled = !physicsEnabled;
+    network.setOptions({ physics: { enabled: physicsEnabled } });
+    e.target.textContent = `⚛️ Physics: ${physicsEnabled ? 'On' : 'Off'}`;
+  });
+
+  document.getElementById('graph-cluster-btn').addEventListener('click', (e) => {
+    if (!clustered) {
+      groupsPresent.forEach(g => {
+        if (g === 'domain') return;
+        network.cluster({
+          joinCondition: (opts) => opts.group === g,
+          clusterNodeProperties: { label: `${GROUP_LABELS[g] || g} (cluster)`, color: { background: GROUP_COLORS[g] || '#888' }, shape: 'hexagon', size: 22 }
+        });
+      });
+      clustered = true;
+      e.target.textContent = '🧲 Uncluster';
+    } else {
+      network.setData({ nodes: allNodes, edges: allEdges });
+      clustered = false;
+      e.target.textContent = '🧲 Cluster';
+    }
+  });
+
+  document.getElementById('graph-fullscreen-btn').addEventListener('click', () => {
+    const wrap = document.getElementById('graph-container-wrap');
+    if (!document.fullscreenElement) { wrap.requestFullscreen?.(); container.style.height = '90vh'; }
+    else { document.exitFullscreen?.(); container.style.height = '600px'; }
+    setTimeout(() => network.fit(), 300);
+  });
+
+  document.getElementById('graph-export-png').addEventListener('click', () => {
+    const canvas = container.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'infrastructure-graph.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  document.getElementById('graph-export-svg').addEventListener('click', () => {
+    const positions = network.getPositions();
+    const nodesArr = allNodes.get(), edgesArr = allEdges.get();
+    const xs = Object.values(positions).map(p => p.x), ys = Object.values(positions).map(p => p.y);
+    const minX = Math.min(...xs) - 50, maxX = Math.max(...xs) + 50, minY = Math.min(...ys) - 50, maxY = Math.max(...ys) + 50;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" style="background:#0f1115">`;
+    edgesArr.forEach(e => {
+      const from = positions[e.from], to = positions[e.to];
+      if (from && to) svg += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#4b5563" stroke-width="1"/>`;
+    });
+    nodesArr.forEach(n => {
+      const p = positions[n.id]; if (!p) return;
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="10" fill="${GROUP_COLORS[n.group] || '#888'}"/>`;
+      const safeLabel = (n.full_label || n.label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      svg += `<text x="${p.x + 12}" y="${p.y + 4}" font-size="10" fill="#e6e6e6">${safeLabel}</text>`;
+    });
+    svg += '</svg>';
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'infrastructure-graph.svg';
+    link.click();
+  });
+
+  document.getElementById('graph-export-json').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ nodes: allNodes.get(), edges: allEdges.get() }, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'infrastructure-graph.json';
+    link.click();
+  });
+
+  const searchInput = document.getElementById('graph-search-input');
+  const searchList = document.getElementById('graph-search-list');
+  searchInput.addEventListener('input', () => {
+    const term = searchInput.value.toLowerCase().trim();
+    if (!term) { searchList.style.display = 'none'; return; }
+    const matches = graphData.nodes.filter(n => n.full_label.toLowerCase().includes(term)).slice(0, 15);
+    if (matches.length === 0) { searchList.style.display = 'none'; return; }
+    searchList.innerHTML = matches.map(n => `<div data-id="${n.id}">${n.full_label} <span style="color:var(--text-dim); font-size:10px;">(${GROUP_LABELS[n.group] || n.group})</span></div>`).join('');
+    searchList.style.display = 'block';
+    searchList.querySelectorAll('div').forEach(div => {
+      div.addEventListener('click', () => {
+        const id = parseInt(div.dataset.id);
+        network.selectNodes([id]);
+        network.focus(id, { scale: 1.5, animation: true });
+        searchList.style.display = 'none';
+        searchInput.value = '';
+      });
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !searchList.contains(e.target)) searchList.style.display = 'none';
+  });
+
+  const ctxMenu = document.getElementById('graph-context-menu');
+  network.on('oncontext', (params) => {
+    params.event.preventDefault();
+    const nodeId = network.getNodeAt(params.pointer.DOM);
+    if (nodeId === undefined) { ctxMenu.style.display = 'none'; return; }
+    network.selectNodes([nodeId]);
+    const node = allNodes.get(nodeId);
+    const actions = [
+      { label: '📋 Copy Label', fn: () => copyToClipboard(node.full_label) },
+      { label: '📋 Copy All Data', fn: () => copyToClipboard(JSON.stringify(node, null, 2)) },
+    ];
+    if (node.url) actions.push({ label: '↗️ Open Link', fn: () => openExternalLink(node.url) });
+    actions.push({ label: '🔗 Highlight Connected', fn: () => highlightConnected(node.id) });
+    actions.push({ label: '🎯 Focus on Node', fn: () => network.focus(node.id, { scale: 1.8, animation: true }) });
+    actions.push({ label: '🙈 Hide Node', fn: () => allNodes.remove(node.id) });
+
+    ctxMenu.innerHTML = actions.map((a, i) => `<div class="ctx-item" data-idx="${i}">${a.label}</div>`).join('');
+    const rect = container.getBoundingClientRect();
+    ctxMenu.style.left = (rect.left + params.pointer.DOM.x) + 'px';
+    ctxMenu.style.top = (rect.top + params.pointer.DOM.y) + 'px';
+    ctxMenu.style.display = 'block';
+    ctxMenu.querySelectorAll('.ctx-item').forEach((el, i) => {
+      el.addEventListener('click', () => { actions[i].fn(); ctxMenu.style.display = 'none'; });
+    });
+  });
+  document.addEventListener('click', () => { ctxMenu.style.display = 'none'; });
+
+  function highlightConnected(nodeId) {
+    const connected = new Set([nodeId]);
+    allEdges.get().forEach(e => { if (e.from === nodeId) connected.add(e.to); if (e.to === nodeId) connected.add(e.from); });
+    allNodes.update(allNodes.get().map(n => ({ id: n.id, opacity: connected.has(n.id) ? 1 : 0.15 })));
+    setTimeout(() => allNodes.update(allNodes.get().map(n => ({ id: n.id, opacity: 1 }))), 3000);
+  }
+
+  network.on('doubleClick', (params) => {
+    if (params.nodes.length > 0) network.focus(params.nodes[0], { scale: 1.5, animation: true });
+  });
+}
+initGraph({"nodes": [{"id": 0, "label": "ginandjuice.shop", "full_label": "ginandjuice.shop", "group": "domain"}, {"id": 1, "label": "AngularJS", "full_label": "AngularJS", "group": "service"}, {"id": 2, "label": "React", "full_label": "React", "group": "service"}, {"id": 3, "label": "34.246.169.176", "full_label": "34.246.169.176", "group": "ip"}, {"id": 4, "label": "No subdomains IP's were found", "full_label": "No subdomains IP's were found", "group": "ip"}, {"id": 5, "label": "80", "full_label": "80", "group": "port"}, {"id": 6, "label": "443", "full_label": "443", "group": "port"}], "edges": [{"from": 0, "to": 1}, {"from": 0, "to": 2}, {"from": 0, "to": 3}, {"from": 0, "to": 4}, {"from": 0, "to": 5}, {"from": 0, "to": 6}]});
+
+document.getElementById('dns-lookup-btn')?.addEventListener('click', async () => {
+  const resultDiv = document.getElementById('dns-lookup-result');
+  resultDiv.innerHTML = 'Querying Cloudflare DoH...';
+  try {
+    const [a, aaaa, txt] = await Promise.all([
+      dohQuery('ginandjuice.shop', 'A'), dohQuery('ginandjuice.shop', 'AAAA'), dohQuery('ginandjuice.shop', 'TXT')
+    ]);
+    const fmt = (d) => (d.Answer || []).map(x => x.data).join('<br>') || 'No records';
+    resultDiv.innerHTML = `<div class="info-grid">
+      <div class="info-item"><div class="label">A Records</div><div class="value">${fmt(a)}</div></div>
+      <div class="info-item"><div class="label">AAAA Records</div><div class="value">${fmt(aaaa)}</div></div>
+      <div class="info-item"><div class="label">TXT Records</div><div class="value">${fmt(txt)}</div></div>
+    </div>`;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="hint-note">Live DNS lookup failed: ${e.message}</div>`;
+  }
+});
+
+wireSelectAll('social-check-all-header', 'social-row-check');
+document.getElementById('social-select-all')?.addEventListener('click', () => document.querySelectorAll('.social-row-check').forEach(cb => cb.checked = true));
+document.getElementById('social-verify-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('social-row-check');
+  if (!selected.length) return showToast('No links selected');
+  for (const cb of selected) {
+    const row = cb.closest('tr'); const link = row.children[2].textContent.trim(); const cell = row.querySelector('.status-cell');
+    cell.textContent = '...';
+    cell.textContent = (await checkReachable(link)) ? '✅ Reachable' : '❌ Unreachable/Blocked';
+  }
+});
+document.getElementById('social-archive-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('social-row-check');
+  if (!selected.length) return showToast('No links selected');
+  for (const cb of selected) {
+    const link = cb.closest('tr').children[2].textContent.trim();
+    try {
+      const snap = await checkWayback(link);
+      if (snap) openExternalLink(snap); else showToast(`No archive found for ${link}`);
+    } catch (e) { showToast('Wayback check failed (CORS or network restriction)'); }
+  }
+});
+document.getElementById('social-export-btn')?.addEventListener('click', () => exportTableToCSV('social-table', 'social_media.csv', '.social-row-check'));
+const socialTableApi = initTable('social-table', 'social-search', 'social-pagination', 10, (row) => {
+  const val = document.getElementById('social-platform-filter')?.value;
+  return !val || row.dataset.platform === val;
+});
+document.getElementById('social-platform-filter')?.addEventListener('change', () => socialTableApi?.render());
+wireSelectAll('subdomains-check-all-header', 'subdomain-row-check');
+document.getElementById('subdomains-select-all')?.addEventListener('click', () => document.querySelectorAll('.subdomain-row-check').forEach(cb => cb.checked = true));
+document.getElementById('subdomains-check-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  showToast(`Checking ${selected.length} subdomain(s)...`);
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.status-cell'); cell.textContent = '...';
+    cell.textContent = (await checkReachable('http://' + cb.value + '/')) ? '✅ Reachable' : '❌ Unreachable';
+  }
+});
+document.getElementById('subdomains-open-btn')?.addEventListener('click', () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  selected.forEach(cb => openExternalLink('http://' + cb.value + '/'));
+});
+document.getElementById('subdomains-ssl-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.status-cell'); cell.textContent = 'checking HTTPS...';
+    cell.textContent = (await checkReachable('https://' + cb.value + '/')) ? '🔒 HTTPS OK' : '⚠️ HTTPS unreachable';
+  }
+});
+document.getElementById('subdomains-headers-btn')?.addEventListener('click', () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  selected.forEach(cb => openExternalLink(`https://securityheaders.com/?q=${encodeURIComponent(cb.value)}`));
+  showToast('Opened securityheaders.com (browsers block reading headers cross-origin)');
+});
+document.getElementById('subdomains-dns-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.status-cell'); cell.textContent = 'resolving...';
+    try { const data = await dohQuery(cb.value, 'A'); cell.textContent = (data.Answer || []).map(a => a.data).join(', ') || 'No A record'; }
+    catch (e) { cell.textContent = 'DNS lookup failed'; }
+  }
+});
+document.getElementById('subdomains-whois-btn')?.addEventListener('click', () => {
+  const selected = getSelected('subdomain-row-check');
+  if (!selected.length) return showToast('No subdomains selected');
+  selected.slice(0, 5).forEach(cb => openExternalLink(`https://who.is/whois/${cb.value}`));
+  if (selected.length > 5) showToast('Opened first 5 (to avoid overwhelming pop-ups)');
+});
+document.getElementById('subdomains-export-btn')?.addEventListener('click', () => exportTableToCSV('subdomains-table', 'subdomains.csv', '.subdomain-row-check'));
+initTable('subdomains-table', 'subdomains-search', 'subdomains-pagination', 15);
+wireSelectAll('ips-check-all-header', 'ip-row-check');
+document.getElementById('ips-select-all')?.addEventListener('click', () => document.querySelectorAll('.ip-row-check').forEach(cb => cb.checked = true));
+document.getElementById('ips-geolocate-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('ip-row-check');
+  if (!selected.length) return showToast('No IPs selected');
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.geo-cell'); cell.textContent = '...';
+    try { cell.textContent = await geolocateIp(cb.value); cell.classList.add('loaded'); }
+    catch (e) { cell.textContent = 'Failed (rate-limited?)'; }
+  }
+});
+document.getElementById('ips-rdns-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('ip-row-check');
+  if (!selected.length) return showToast('No IPs selected');
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.rdns-cell'); cell.textContent = '...';
+    try { cell.textContent = await reverseDnsLookup(cb.value); } catch (e) { cell.textContent = 'Lookup failed'; }
+  }
+});
+document.getElementById('ips-export-btn')?.addEventListener('click', () => exportTableToCSV('ips-table', 'ip_addresses.csv', '.ip-row-check'));
+initTable('ips-table', 'ips-search', 'ips-pagination', 10);
+wireSelectAll('tech-check-all-header', 'tech-row-check');
+document.getElementById('tech-select-all')?.addEventListener('click', () => document.querySelectorAll('.tech-row-check').forEach(cb => cb.checked = true));
+document.getElementById('tech-cve-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('tech-row-check');
+  if (!selected.length) return showToast('No technologies selected');
+  for (const cb of selected) {
+    const cell = cb.closest('tr').querySelector('.cve-cell'); cell.textContent = 'searching...';
+    try {
+      const results = await nvdSearchByKeyword(cb.value);
+      cell.innerHTML = results.length ? results.slice(0, 3).map(r => `<a href="#" data-external-url="https://nvd.nist.gov/vuln/detail/${r.cve.id}" style="color:var(--accent);">${r.cve.id}</a>`).join(', ') : 'No known CVEs found';
+    } catch (e) { cell.textContent = 'NVD lookup failed/rate-limited'; }
+    await new Promise(r => setTimeout(r, 500));
+  }
+});
+document.getElementById('tech-export-btn')?.addEventListener('click', () => exportTableToCSV('tech-table', 'technologies.csv', '.tech-row-check'));
+const techTableApi = initTable('tech-table', 'tech-search', 'tech-pagination', 10, (row) => {
+  const val = document.getElementById('tech-category-filter')?.value;
+  return !val || row.dataset.category === val;
+});
+document.getElementById('tech-category-filter')?.addEventListener('change', () => techTableApi?.render());
+document.querySelectorAll('#ports-table tbody tr').forEach(row => {
+  const cb = row.querySelector('.port-row-check');
+  if (!cb) return;
+  const svc = guessService(cb.value);
+  row.querySelector('.service-guess').textContent = svc;
+  row.dataset.category = serviceCategory(svc);
+});
+wireSelectAll('ports-check-all-header', 'port-row-check');
+document.getElementById('ports-select-all')?.addEventListener('click', () => document.querySelectorAll('.port-row-check').forEach(cb => cb.checked = true));
+document.getElementById('ports-nmap-btn')?.addEventListener('click', () => {
+  const selected = getSelected('port-row-check');
+  if (!selected.length) return showToast('No ports selected');
+  const cmd = `nmap -sV -p ${selected.map(cb => cb.value).join(',')} ginandjuice.shop`;
+  const out = document.getElementById('nmap-output');
+  out.style.display = 'block';
+  out.innerHTML = `<div class="hint-note"><strong>Generated Nmap command (copied to clipboard):</strong><pre class="code-block" style="margin-top:6px;">${cmd}</pre></div>`;
+  copyToClipboard(cmd);
+});
+document.getElementById('ports-export-btn')?.addEventListener('click', () => exportTableToCSV('ports-table', 'ports.csv', '.port-row-check'));
+const portsTableApi = initTable('ports-table', 'ports-search', null, 1000, (row) => {
+  const val = document.getElementById('ports-service-filter')?.value;
+  return !val || row.dataset.category === val;
+});
+document.getElementById('ports-service-filter')?.addEventListener('change', () => portsTableApi?.render());
+wireSelectAll('vulns-check-all-header', 'vuln-row-check');
+document.getElementById('vulns-select-all')?.addEventListener('click', () => document.querySelectorAll('.vuln-row-check').forEach(cb => cb.checked = true));
+document.getElementById('vulns-lookup-btn')?.addEventListener('click', async () => {
+  const selected = getSelected('vuln-row-check');
+  if (!selected.length) return showToast('No CVEs selected');
+  for (const cb of selected) {
+    const row = cb.closest('tr'); const sevCell = row.querySelector('.severity-cell'); const descCell = row.querySelector('.desc-cell');
+    sevCell.innerHTML = '<span class="badge badge-unknown">Checking...</span>';
+    try {
+      const info = await nvdGetCve(cb.value);
+      if (info) {
+        sevCell.innerHTML = `<span class="badge badge-${info.severity.toLowerCase()}">${info.severity}${info.score ? ' (' + info.score + ')' : ''}</span>`;
+        descCell.textContent = info.description;
+        row.dataset.severity = info.severity.toLowerCase();
+      } else {
+        sevCell.innerHTML = '<span class="badge badge-unknown">Not found</span>';
+      }
+    } catch (e) { sevCell.innerHTML = '<span class="badge badge-unknown">Rate-limited</span>'; }
+    await new Promise(r => setTimeout(r, 700));
+  }
+});
+document.getElementById('vulns-remediation-btn')?.addEventListener('click', () => {
+  const selected = getSelected('vuln-row-check');
+  if (!selected.length) return showToast('No CVEs selected');
+  let text = `Remediation Guide for ginandjuice.shop\nGenerated: ${new Date().toISOString()}\n\n`;
+  selected.forEach(cb => { text += `- ${cb.value}: Review advisory at https://nvd.nist.gov/vuln/detail/${cb.value} and apply vendor patch.\n`; });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'remediation_guide.txt'; link.click();
+});
+document.getElementById('vulns-export-btn')?.addEventListener('click', () => exportTableToCSV('vulns-table', 'vulnerabilities.csv', '.vuln-row-check'));
+const vulnsTableApi = initTable('vulns-table', 'vulns-search', null, 1000, (row) => {
+  const val = document.getElementById('vulns-severity-filter')?.value;
+  return !val || row.dataset.severity === val;
+});
+document.getElementById('vulns-severity-filter')?.addEventListener('change', () => vulnsTableApi?.render());
+
+const HR_DATA = {"queried_domain": "ginandjuice.shop", "domain_summary": {"available": true, "total_entries": 1, "total_stealers": 36450215}, "attack_surface": {"available": true, "message": "The following are URLs identified based on Infostealers infections, to learn more please visit www.hudsonrock.com/free-tools", "employees_urls": [], "clients_urls": [{"occurrence": 1, "type": "client", "url": "https://ginandjuice.shop/login"}]}, "candidate_emails_checked": [], "email_checks": [], "candidate_ips_checked": ["34.246.169.176", "No subdomains IP's were found"], "ip_checks": [{"target": "34.246.169.176", "available": true, "compromised": false, "records": []}, {"target": "No subdomains IP's were found", "available": false, "compromised": false, "records": []}], "username_check": null, "all_records": [], "stealer_family_breakdown": {}, "stealer_profiles_used": {}, "timeline": [], "risk_score": 40, "risk_level": "medium", "summary_text": "HudsonRock Cavalier identified 36450215 historical Infostealer infection(s) associated with ginandjuice.shop. Of 0 discovered contact email(s) checked, 0 were found in compromised credential dumps. 0 employee-related and 1 client-related exposed URLs were identified.", "matched_emails": [], "total_employee_urls": 0, "total_client_urls": 1, "classified_urls": [{"occurrence": 1, "type": "client", "url": "https://ginandjuice.shop/login", "audience": "Client", "criticality": "low", "category_label": "General / Uncategorized"}], "criticality_breakdown": {"critical": 0, "high": 0, "medium": 0, "low": 1}, "password_hygiene": {"total_passwords_analyzed": 0, "weak_count": 0, "unique_score": 100, "weak_samples": [], "reuse_groups": []}, "vip_records": [], "cross_verified_findings": [], "geo_distribution": [], "remediation_plan": ["No specific action items identified — continue routine credential hygiene monitoring.", "Consider enabling multi-factor authentication (MFA) organization-wide if not already enforced."], "trend": {"direction": "unknown", "description": "Not enough dated records to determine a trend."}};
+
+function hrEscapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderHudsonRockDashboard(data) {
+  if (!data) return;
+  const level = data.risk_level || 'none';
+
+	document.getElementById('hr-risk-panel').innerHTML = `
+    <h2>🩸 Infostealer Intelligence — Corporate Exposure Analysis</h2>
+    <div class="risk-hero">
+      <div class="risk-score-circle risk-${level}">${data.risk_score ?? 0}<span class="risk-max">/ 100</span></div>
+      <div>
+        <div class="risk-level-label risk-${level}">${level} risk</div>
+        <div class="risk-summary-text">${hrEscapeHtml(data.summary_text || '')}</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="margin-top:18px;">
+      <div class="stat-box"><div class="num">${data.domain_summary?.total_stealers ?? 0}</div><div class="label">Domain-wide Infections</div></div>
+      <div class="stat-box"><div class="num">${(data.email_checks||[]).filter(c=>c.compromised).length}</div><div class="label">Compromised Contacts</div></div>
+      <div class="stat-box"><div class="num">${(data.ip_checks||[]).filter(c=>c.compromised).length}</div><div class="label">Compromised IPs</div></div>
+      <div class="stat-box"><div class="num">${data.total_employee_urls ?? 0}</div><div class="label">Employee URLs</div></div>
+      <div class="stat-box"><div class="num">${data.total_client_urls ?? 0}</div><div class="label">Client URLs</div></div>
+      <div class="stat-box"><div class="num">${(data.vip_records||[]).length}</div><div class="label">High-Value Assets Flagged</div></div>
+    </div>
+    ${(data.vip_records && data.vip_records.length > 0) ? `
+      <div class="vip-alert-box">
+        <h4>⚠️ Potential High-Value Targets Detected</h4>
+        ${data.vip_records.map(r => `<div class="vip-item"><strong>${hrEscapeHtml(r.computer_name)}</strong> — ${hrEscapeHtml(r.vip_reason)}</div>`).join('')}
+      </div>` : ''}
+  `;
+
+  const timeline = data.timeline || [];
+  const timelineCtx = document.getElementById('hr-timeline-chart');
+  if (timelineCtx && timeline.length > 0) {
+    const buckets = {};
+    timeline.forEach(e => { const m = e.date ? e.date.slice(0,7) : 'Unknown'; buckets[m] = (buckets[m]||0)+1; });
+    const months = Object.keys(buckets).sort();
+    new Chart(timelineCtx, {
+      type: 'bar',
+      data: { labels: months, datasets: [{ label: 'Infections', data: months.map(m=>buckets[m]), backgroundColor: '#ef4444' }] },
+      options: { responsive:true, plugins:{legend:{display:false}},
+        scales: { y:{beginAtZero:true, ticks:{color:'#999', stepSize:1}, grid:{color:'rgba(255,255,255,0.05)'}}, x:{ticks:{color:'#999'}, grid:{display:false}} } }
+    });
+  } else if (timelineCtx) {
+    timelineCtx.parentElement.innerHTML = '<h3>Timeline</h3><div class="hint-note">No dated infection records available.</div>';
+  }
+
+  const familyData = data.stealer_family_breakdown || {};
+  const familyCtx = document.getElementById('hr-family-chart');
+  if (familyCtx && Object.keys(familyData).length > 0) {
+    new Chart(familyCtx, {
+      type: 'doughnut',
+      data: { labels: Object.keys(familyData), datasets: [{ data: Object.values(familyData), backgroundColor: ['#ef4444','#f97316','#eab308','#a855f7','#3b82f6','#14b8a6','#ec4899','#dc2626'] }] },
+      options: { responsive:true, plugins:{legend:{position:'bottom', labels:{color:'#999', font:{size:10}}}} }
+    });
+  } else if (familyCtx) {
+    familyCtx.parentElement.innerHTML = '<h3>Stealer Family Distribution</h3><div class="hint-note">No stealer family data available.</div>';
+  }
+
+  const trend = data.trend || {};
+  const trendDir = trend.direction || 'unknown';
+  const trendIcons = { increasing: '📈', decreasing: '📉', stable: '➡️', unknown: '❓' };
+  document.getElementById('hr-trend-container').innerHTML = `
+    <div class="trend-badge trend-${trendDir}">${trendIcons[trendDir] || '❓'} ${hrEscapeHtml(trend.description || 'No trend data available.')}</div>
+  `;
+
+  const profiles = data.stealer_profiles_used || {};
+  const profilesContainer = document.getElementById('hr-profiles-container');
+  const profileKeys = Object.keys(profiles);
+  if (profileKeys.length > 0) {
+    profilesContainer.innerHTML = profileKeys.map(family => {
+      const p = profiles[family];
+      return `
+        <div class="stealer-profile-card">
+          <h4>${hrEscapeHtml(p.display_name)} <span class="hint" style="font-weight:400;">(${familyData[family] || 0} record(s))</span></h4>
+          <p>${hrEscapeHtml(p.description)}</p>
+          <div class="meta-row">
+            <span><strong>Typical vector:</strong> ${hrEscapeHtml(p.typical_vector)}</span>
+          </div>
+          <div class="meta-row">
+            <span><strong>Data targeted:</strong> ${hrEscapeHtml(p.data_targeted)}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    profilesContainer.innerHTML = '<div class="hint-note">No specific stealer families identified in the analyzed records.</div>';
+  }
+
+  const hygiene = data.password_hygiene || {};
+  const hygieneContainer = document.getElementById('hr-hygiene-container');
+  const uniqueScore = hygiene.unique_score ?? 100;
+  hygieneContainer.innerHTML = `
+    <p class="hint-note">Score reflects the percentage of analyzed passwords that are not common/weak patterns. This is independent of whether a breach occurred — it measures overall password quality among compromised credentials.</p>
+    <div class="hygiene-score-bar-wrap">
+      <div class="hygiene-score-bar" style="width:${uniqueScore}%;"></div>
+      <div class="hygiene-score-label">${uniqueScore}/100 Password Quality Score</div>
+    </div>
+    <div class="stats-grid" style="margin-top:14px;">
+      <div class="stat-box"><div class="num">${hygiene.total_passwords_analyzed ?? 0}</div><div class="label">Passwords Analyzed</div></div>
+      <div class="stat-box"><div class="num">${hygiene.weak_count ?? 0}</div><div class="label">Weak/Common Passwords</div></div>
+      <div class="stat-box"><div class="num">${(hygiene.reuse_groups||[]).length}</div><div class="label">Reused Password Groups</div></div>
+    </div>
+    ${(hygiene.reuse_groups && hygiene.reuse_groups.length > 0) ? `
+      <h3 style="margin-top:16px;">Detected Password Reuse</h3>
+      <table><thead><tr><th>Masked Password</th><th>Used In</th></tr></thead><tbody>
+        ${hygiene.reuse_groups.map(g => `<tr><td><span class="pwd-blur" onclick="this.classList.toggle('revealed')">${hrEscapeHtml(g.password_masked)}</span></td><td>${g.sources.map(s=>hrEscapeHtml(s)).join(', ')}</td></tr>`).join('')}
+      </tbody></table>
+    ` : ''}
+  `;
+
+  const recordsContainer = document.getElementById('hr-records-container');
+  const allRecords = data.all_records || [];
+  if (allRecords.length > 0) {
+    const vipNames = new Set((data.vip_records||[]).map(r=>r.computer_name));
+    const rows = allRecords.map(r => {
+      const isVip = vipNames.has(r.computer_name);
+      const passwordsHtml = (r.top_passwords||[]).map(p => `<span class="pwd-blur" onclick="this.classList.toggle('revealed')">${hrEscapeHtml(p)}</span>`).join(' ') || '<span class="hint">None</span>';
+      const loginsHtml = (r.top_logins||[]).map(l=>hrEscapeHtml(l)).join(', ') || '—';
+      return `
+        <tr>
+          <td><span class="hr-source-tag">${hrEscapeHtml(r.source)}</span></td>
+          <td>${hrEscapeHtml(r.computer_name)} ${isVip ? '⚠️' : ''}</td>
+          <td>${hrEscapeHtml(r.operating_system)}</td>
+          <td>${hrEscapeHtml(r.date_compromised || 'Unknown')}</td>
+          <td>${hrEscapeHtml(r.stealer_family)}</td>
+          <td>${hrEscapeHtml(r.ip)}</td>
+          <td>${loginsHtml}</td>
+          <td>${passwordsHtml}</td>
+        </tr>`;
+    }).join('');
+    recordsContainer.innerHTML = `
+      <div class="hint-note">Passwords are blurred by default. Click a password (or "Reveal All") to view it.</div>
+      <table id="hr-records-table"><thead><tr><th>Source</th><th>Computer</th><th>OS</th><th>Date</th><th>Stealer</th><th>IP</th><th>Logins</th><th>Passwords</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    `;
+    document.getElementById('hr-reveal-all-btn')?.addEventListener('click', () => {
+      document.querySelectorAll('#hr-records-table .pwd-blur').forEach(el => el.classList.add('revealed'));
+    });
+  } else {
+    recordsContainer.innerHTML = '<div class="hint-note">No compromised device records found for the checked contacts, IPs, or username.</div>';
+  }
+
+  const attackContainer = document.getElementById('hr-attack-surface-container');
+  const classifiedUrls = data.classified_urls || [];
+  const critBreakdown = data.criticality_breakdown || {};
+  if (classifiedUrls.length > 0) {
+    attackContainer.innerHTML = `
+      <div class="stats-grid" style="margin-bottom:16px;">
+        <div class="stat-box"><div class="num">${critBreakdown.critical||0}</div><div class="label">Critical</div></div>
+        <div class="stat-box"><div class="num">${critBreakdown.high||0}</div><div class="label">High</div></div>
+        <div class="stat-box"><div class="num">${critBreakdown.medium||0}</div><div class="label">Medium</div></div>
+        <div class="stat-box"><div class="num">${critBreakdown.low||0}</div><div class="label">Low</div></div>
+      </div>
+      <table><thead><tr><th>Criticality</th><th>Category</th><th>Audience</th><th>URL</th><th>Actions</th></tr></thead><tbody>
+      ${classifiedUrls.map(u => `
+        <tr>
+          <td><span class="criticality-badge crit-${u.criticality}">${u.criticality}</span></td>
+          <td>${hrEscapeHtml(u.category_label)}</td>
+          <td>${hrEscapeHtml(u.audience)}</td>
+          <td style="word-break:break-all;">${hrEscapeHtml(u.url || 'N/A')}</td>
+          <td><button class="btn btn-sm" data-external-url="${hrEscapeHtml(u.url||'')}">Open</button></td>
+        </tr>`).join('')}
+      </tbody></table>
+    `;
+  } else {
+    attackContainer.innerHTML = '<div class="hint-note">No employee or client exposure URLs found.</div>';
+  }
+
+  const geoContainer = document.getElementById('hr-geo-container');
+  const geoData = data.geo_distribution || [];
+  if (geoData.length > 0) {
+    const maxCount = Math.max(...geoData.map(g => g.count));
+    geoContainer.innerHTML = geoData.map(g => `
+      <div class="geo-bar-row">
+        <div class="geo-label">${hrEscapeHtml(g.city)}, ${hrEscapeHtml(g.country)}</div>
+        <div class="geo-bar-track"><div class="geo-bar-fill" style="width:${(g.count/maxCount)*100}%;"></div></div>
+        <div class="geo-bar-count">${g.count}</div>
+      </div>
+    `).join('');
+  } else {
+    geoContainer.innerHTML = '<div class="hint-note">No geolocation data available for infected machine IPs.</div>';
+  }
+
+  const crossContainer = document.getElementById('hr-crossverify-container');
+  const crossFindings = data.cross_verified_findings || [];
+  if (crossFindings.length > 0) {
+    crossContainer.innerHTML = crossFindings.map(f => `
+      <div class="cross-verified-item">
+        <span class="cv-badge">✓ Cross-Verified</span> — ${hrEscapeHtml(f.note)}<br>
+        <span style="word-break:break-all; color:var(--text-dim);">${hrEscapeHtml(f.url)}</span>
+      </div>
+    `).join('');
+  } else {
+    crossContainer.innerHTML = '<div class="hint-note">No cross-verified findings between HudsonRock data and the site\'s detected technology stack.</div>';
+  }
+
+  const remediationList = document.getElementById('hr-remediation-list');
+  const plan = data.remediation_plan || [];
+  remediationList.innerHTML = plan.map(item => `<li><span class="rem-check"></span>${hrEscapeHtml(item)}</li>`).join('');
+
+  document.getElementById('hr-export-remediation-btn')?.addEventListener('click', () => {
+    let text = `EXECUTIVE SUMMARY — Infostealer Intelligence Report\nDomain: ginandjuice.shop\nGenerated: ${new Date().toISOString()}\n\n`;
+    plan.forEach((item, i) => { text += `${i+1}. ${item}\n`; });
+    text += `\n---\nAnalysis powered by HudsonRock Cavalier Threat Intelligence (https://www.hudsonrock.com/)\n`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'hudsonrock_remediation_plan.txt'; link.click();
+  });
+
+  document.getElementById('hr-export-summary-btn')?.addEventListener('click', () => {
+    let text = `EXECUTIVE SUMMARY — Threat Intelligence Report\n`;
+    text += `Domain: ginandjuice.shop\nGenerated: ${new Date().toISOString()}\n\n`;
+    text += `Risk Level: ${(data.risk_level||'none').toUpperCase()} (${data.risk_score ?? 0}/100)\n\n`;
+    text += `${data.summary_text || ''}\n\n`;
+    text += `Trend: ${data.trend?.description || 'N/A'}\n\n`;
+    text += `Key figures:\n`;
+    text += `- Domain-wide historical infections: ${data.domain_summary?.total_stealers ?? 0}\n`;
+    text += `- Compromised contacts identified: ${(data.email_checks||[]).filter(c=>c.compromised).length}\n`;
+    text += `- Critical/High exposed services: ${(data.criticality_breakdown?.critical||0) + (data.criticality_breakdown?.high||0)}\n`;
+    text += `- Password quality score: ${data.password_hygiene?.unique_score ?? 100}/100\n\n`;
+    text += `This analysis was conducted in partnership with HudsonRock (https://www.hudsonrock.com/), leveraging their Cavalier Infostealer intelligence platform.\n`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'executive_summary.txt'; link.click();
+  });
+
+  const emailsContainer = document.getElementById('hr-emails-container');
+  const emailChecks = data.email_checks || [];
+  if (emailChecks.length > 0) {
+    emailsContainer.innerHTML = `
+      <table><thead><tr><th>Email</th><th>Status</th><th>Records Found</th></tr></thead><tbody>
+      ${emailChecks.map(c => `<tr><td>${hrEscapeHtml(c.target)}</td><td>${c.compromised ? '<span class="badge badge-critical">Compromised</span>' : '<span class="badge badge-low">Clean</span>'}</td><td>${(c.records||[]).length}</td></tr>`).join('')}
+      </tbody></table>
+    `;
+  } else {
+    emailsContainer.innerHTML = '<div class="hint-note">No contact emails were discovered during the scan to cross-reference.</div>';
+  }
+}
+
+const LUNAR_DATA = {"available": false, "status": "GENERATING_REPORT", "pending": true, "queried_domain": "ginandjuice.shop", "request_uuid": "0814638fc19dbbc3db4d098e0b1df1550a92a95e", "period": {"from": "2025-09-01", "to": "2026-08-31"}, "generated_at": null, "report": {}, "raw_response": {"requestUuid": "0814638fc19dbbc3db4d098e0b1df1550a92a95e", "domain": "ginandjuice.shop", "periodFrom": "2025-09-01", "periodTo": "2026-08-31", "status": "GENERATING_REPORT", "report": null}, "summary": {}, "summary_text": "Lunar is still generating the exposure report for ginandjuice.shop. Retry later to retrieve the completed report.", "error": null, "source": "Lunar Domain Exposure API"};
+
+function lunarFormatNumber(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function lunarRenderTable(containerId, title, columns, rows, emptyText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!rows || rows.length === 0) {
+    container.innerHTML = '<h3>' + title + '</h3><div class="hint-note">' + emptyText + '</div>';
+    return;
+  }
+  const head = columns.map(c => '<th>' + hrEscapeHtml(c.label) + '</th>').join('');
+  const body = rows.map(row => '<tr>' + columns.map(c => '<td>' + hrEscapeHtml(row[c.key] === undefined || row[c.key] === null ? '—' : String(row[c.key])) + '</td>').join('') + '</tr>').join('');
+  container.innerHTML = '<h3>' + title + '</h3><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
+}
+
+function renderLunarCyberDashboard(data) {
+  const panel = document.getElementById('lunar-risk-panel');
+  if (!panel) return;
+  if (!data || !data.available) {
+    const status = data?.status || 'UNAVAILABLE';
+    panel.innerHTML = '<h2>🌙 Lunar Domain Exposure</h2><div class="hint-note">' + hrEscapeHtml(data?.summary_text || 'Lunar report unavailable.') + ' <strong>Status: ' + hrEscapeHtml(status) + '</strong></div>';
+    return;
+  }
+  const report = data.report || {};
+  const summary = report.summary || {};
+  const period = data.period || {};
+  const indicator = data.exposure_indicator || {};
+  const level = indicator.level || 'none';
+  const subject = report.exposure_subject_breakdown || {};
+  const family = report.event_family_breakdown || {};
+  const breach = report.data_breach_summary || {};
+  panel.innerHTML = '<h2>🌙 Lunar Domain Exposure — Aggregate Risk Analysis</h2>' +
+    '<div class="risk-hero"><div class="risk-score-circle risk-' + hrEscapeHtml(level) + '">' + lunarFormatNumber(indicator.score) + '<span class="risk-max">/ 100</span></div>' +
+    '<div><div class="risk-level-label risk-' + hrEscapeHtml(level) + '">' + hrEscapeHtml(level) + ' DPULSE indicator</div><div class="risk-summary-text">' + hrEscapeHtml(data.summary_text || '') + '</div><div class="hint-note">Calculated by DPULSE from Lunar aggregate counts and recency; Lunar does not publish this numeric score.</div></div></div>' +
+    '<div class="stats-grid" style="margin-top:18px;"><div class="stat-box"><div class="num">' + lunarFormatNumber(summary.total_events) + '</div><div class="label">Total Events</div></div><div class="stat-box"><div class="num">' + lunarFormatNumber(summary.infostealer_events) + '</div><div class="label">Infostealer Events</div></div><div class="stat-box"><div class="num">' + lunarFormatNumber(summary.employee_events) + '</div><div class="label">Employee Events</div></div><div class="stat-box"><div class="num">' + lunarFormatNumber(summary.client_events) + '</div><div class="label">Client Events</div></div></div>' +
+    '<div class="hint-note" style="margin-top:14px;">Analyzed period: ' + hrEscapeHtml((period.from || 'unknown') + ' — ' + (period.to || 'unknown')) + ' · First seen: ' + hrEscapeHtml(summary.first_seen || 'unknown') + ' · Last seen: ' + hrEscapeHtml(summary.last_seen || 'unknown') + ' · Generated: ' + hrEscapeHtml(data.generated_at || 'unknown') + '</div>';
+
+  const familyCanvas = document.getElementById('lunar-family-chart');
+  if (familyCanvas && typeof Chart !== 'undefined') {
+    new Chart(familyCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Infostealer', 'Data breach'],
+        datasets: [{
+          data: [family.infostealer?.events || 0, family.data_breach?.events || 0],
+          backgroundColor: ['#dc2626', '#3b82f6']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  const timelineRows = (report.monthly_timeline || []).map(item => ({
+    month: item.month || '—',
+    total_events: lunarFormatNumber(item.total_events),
+    infostealer_events: lunarFormatNumber(item.infostealer_events),
+    data_breach_events: lunarFormatNumber(item.data_breach_events),
+    employee_events: lunarFormatNumber(item.employee?.total_events),
+    client_events: lunarFormatNumber(item.client?.total_events)
+  }));
+  lunarRenderTable('lunar-timeline-container', 'Monthly Exposure Timeline', [{key:'month',label:'Month'},{key:'total_events',label:'Total'},{key:'infostealer_events',label:'Infostealer'},{key:'data_breach_events',label:'Data Breach'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'}], timelineRows, 'No monthly timeline was returned.');
+
+  const familyRows = Object.entries(family).map(([name, item]) => ({
+    family: name,
+    events: lunarFormatNumber(item.events),
+    share_of_total_percent: item.share_of_total_percent === undefined ? '—' : item.share_of_total_percent + '%',
+    employee_events: lunarFormatNumber(item.employee_events),
+    client_events: lunarFormatNumber(item.client_events),
+    first_seen: item.first_seen || '—',
+    last_seen: item.last_seen || '—'
+  }));
+  lunarRenderTable('lunar-family-container', 'Event Family Breakdown', [{key:'family',label:'Family'},{key:'events',label:'Events'},{key:'share_of_total_percent',label:'Share %'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'first_seen',label:'First Seen'},{key:'last_seen',label:'Last Seen'}], familyRows, 'No event-family breakdown was returned.');
+
+  const infostealer = report.infostealer_summary || {};
+  const infostealerRows = Object.keys(infostealer).length ? [{
+    total_events: lunarFormatNumber(infostealer.total_events),
+    employee_events: lunarFormatNumber(infostealer.employee_events),
+    client_events: lunarFormatNumber(infostealer.client_events),
+    malware_families_observed: lunarFormatNumber(infostealer.malware_families_observed),
+    events_with_os_context: lunarFormatNumber(infostealer.events_with_os_context),
+    first_seen: infostealer.first_seen || '—',
+    last_seen: infostealer.last_seen || '—'
+  }] : [];
+  lunarRenderTable('lunar-infostealer-container', 'Infostealer Summary', [{key:'total_events',label:'Total'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'malware_families_observed',label:'Malware Families'},{key:'events_with_os_context',label:'Events With OS'},{key:'first_seen',label:'First Seen'},{key:'last_seen',label:'Last Seen'}], infostealerRows, 'No infostealer summary was returned.');
+
+  const breachRows = Object.keys(breach).length ? [{
+    total_events: lunarFormatNumber(breach.total_events),
+    employee_events: lunarFormatNumber(breach.employee_events),
+    client_events: lunarFormatNumber(breach.client_events),
+    known_breach_sources_count: lunarFormatNumber(breach.known_breach_sources_count),
+    events_from_known_breach_sources: lunarFormatNumber(breach.events_from_known_breach_sources),
+    events_from_combolist_sources: lunarFormatNumber(breach.events_from_combolist_sources),
+    first_seen: breach.first_seen || '—',
+    last_seen: breach.last_seen || '—'
+  }] : [];
+  lunarRenderTable('lunar-breach-summary-container', 'Data Breach Summary', [{key:'total_events',label:'Total'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'known_breach_sources_count',label:'Known Sources'},{key:'events_from_known_breach_sources',label:'Known-Source Events'},{key:'events_from_combolist_sources',label:'Combolist Events'},{key:'first_seen',label:'First Seen'},{key:'last_seen',label:'Last Seen'}], breachRows, 'No data-breach summary was returned.');
+
+  const subjectRows = ['employee', 'client'].map(key => { const x = subject[key] || {}; return { subject: key, total_events: lunarFormatNumber(x.total_events), infostealer_events: lunarFormatNumber(x.infostealer_events), data_breach_events: lunarFormatNumber(x.data_breach_events), first_seen: x.first_seen || '—', last_seen: x.last_seen || '—' }; });
+  lunarRenderTable('lunar-subject-container', 'Exposure Subject Breakdown', [{key:'subject',label:'Subject'},{key:'total_events',label:'Total Events'},{key:'infostealer_events',label:'Infostealer'},{key:'data_breach_events',label:'Data Breach'},{key:'first_seen',label:'First Seen'},{key:'last_seen',label:'Last Seen'}], subjectRows, 'No employee or client breakdown was returned.');
+  lunarRenderTable('lunar-malware-container', 'Malware Families', [{key:'family',label:'Family'},{key:'events',label:'Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'share_of_infostealer_events_percent',label:'Share %'}], report.malware_family_breakdown || [], 'No malware-family context was available.');
+  lunarRenderTable('lunar-os-container', 'Operating Systems', [{key:'os_family',label:'Operating System'},{key:'infostealer_events',label:'Infostealer Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'share_of_infostealer_events_percent',label:'Share %'}], report.os_breakdown || [], 'No operating-system context was available.');
+  lunarRenderTable('lunar-antivirus-container', 'Antivirus', [{key:'antivirus',label:'Antivirus'},{key:'events',label:'Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'share_of_infostealer_events_percent',label:'Share %'}], report.antivirus_breakdown || [], 'No antivirus context was available.');
+  lunarRenderTable('lunar-services-container', 'Service Classification', [{key:'service',label:'Service'},{key:'events',label:'Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'share_of_total_events_percent',label:'Share %'}], report.service_classification_breakdown || [], 'No service context was available.');
+  lunarRenderTable('lunar-login-container', 'Top Login URLs', [{key:'url',label:'Login URL'},{key:'events',label:'Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'}], report.top_login_urls || [], 'No login URL context was available.');
+  lunarRenderTable('lunar-country-container', 'Country Breakdown', [{key:'country',label:'Country'},{key:'events',label:'Events'}], report.country_breakdown || [], 'No country context was available.');
+
+  const sourceRows = Object.entries(report.data_breach_source_type_breakdown || {}).map(([source, value]) => ({ source, events: lunarFormatNumber(value.events), employee_events: lunarFormatNumber(value.employee_events), client_events: lunarFormatNumber(value.client_events), share: value.share_of_data_breach_events_percent === undefined ? '—' : value.share_of_data_breach_events_percent + '%' }));
+  lunarRenderTable('lunar-breach-container', 'Data Breach Sources — ' + lunarFormatNumber(breach.total_events) + ' total events', [{key:'source',label:'Source Type'},{key:'events',label:'Events'},{key:'employee_events',label:'Employees'},{key:'client_events',label:'Clients'},{key:'share',label:'Share %'}], sourceRows, 'No data-breach source breakdown was available.');
+}
+
+renderHudsonRockDashboard(HR_DATA);
+renderLunarCyberDashboard(LUNAR_DATA);
+document.getElementById('lunar-export-json-btn')?.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(LUNAR_DATA, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `lunar-domain-exposure-${LUNAR_DATA?.queried_domain || 'report'}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
+</script>
+</body>
+</html>
